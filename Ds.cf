@@ -1,0 +1,46 @@
+-- This file could be used with https://bnfc.digitalgrammars.com/
+
+entrypoints Rule ;
+
+comment "//" ;
+
+token Identity ["!\"#$%&'*+-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_abcdefghijklmnopqrstuvwxyz{|}~"] + ;
+-- all char except ()`,
+
+LogicalOr.                Term1  ::= Term1  "||" Term2  ;
+LogicalAnd.               Term2  ::= Term2  "&&" Term3  ;
+BitwiseInclusiveOr.       Term3  ::= Term3  "|"  Term4  ;
+BitwiseExclusiveOr.       Term4  ::= Term4  "^"  Term5  ;
+BitwiseAnd.               Term5  ::= Term5  "&"  Term6  ;
+Equality.                 Term6  ::= Term6  "==" Term7  ;
+Inequality.               Term6  ::= Term6  "!=" Term7  ;
+LessThan.                 Term7  ::= Term7  "<"  Term8  ;
+GreaterThan.              Term7  ::= Term7  ">"  Term8  ;
+LessThanOrEqualTo.        Term7  ::= Term7  "<=" Term8  ;
+GreaterThanOrEqualTo.     Term7  ::= Term7  ">=" Term8  ;
+LeftShift.                Term8  ::= Term8  "<<" Term9  ;
+RightShift.               Term8  ::= Term8  ">>" Term9  ;
+Addition.                 Term9  ::= Term9  "+"  Term10 ;
+Subtraction.              Term9  ::= Term9  "-"  Term10 ;
+Multiplication.           Term10 ::= Term10 "*"  Term11 ;
+Division.                 Term10 ::= Term10 "/"  Term11 ;
+Modulus.                  Term10 ::= Term10 "%"  Term11 ;
+Complement.               Term11 ::=        "~"  Term11 ;
+LogicalNot.               Term11 ::=        "!"  Term11 ;
+UnaryNegation.            Term11 ::=        "-"  Term11 ;
+UnaryPlus.                Term11 ::=        "+"  Term11 ;
+AddressOf.                Term11 ::=        "&"  Term11 ;
+Indirection.              Term11 ::=        "*"  Term11 ;
+
+Item.                     Term64 ::= Identity ;
+TypedItem.                Term64 ::= Identity ":" Identity ;
+Variable.                 Term64 ::= "`" Identity ;
+TypedVariable.            Term64 ::= "`" Identity ":" Identity ;
+Function.                 Term64 ::= Term64 "(" [Term] ")" ;
+Bracket.                  Term64 ::= "(" Term ")" ;
+
+ProperRule.               Rule   ::= [Term] "->" Term ;
+Fact.                     Rule   ::= Term ;
+
+coercions Term 64  ;
+separator Term "," ;

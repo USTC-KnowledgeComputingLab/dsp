@@ -1,5 +1,12 @@
 node_modules
 dist
+Ds.interp
+Ds.tokens
+DsLexer.interp
+DsLexer.tokens
+DsLexer.js
+DsParser.js
+DsVisitor.js
 Dsp.interp
 Dsp.tokens
 DspLexer.interp

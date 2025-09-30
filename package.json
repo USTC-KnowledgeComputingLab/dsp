@@ -1,7 +1,7 @@
 {
     "name": "dsp",
     "type": "module",
-    "main": "dist/dsp.js",
+    "main": "dist/index.js",
     "scripts": {
         "prepare": "antlr4 -Dlanguage=JavaScript Dsp.g4 -visitor -no-listener",
         "build": "rollup --config rollup.config.js"

@@ -1,13 +1,15 @@
 import terser from "@rollup/plugin-terser";
 
 export default {
-    input: "index.js",
+    input: {
+        index: "index.js",
+        main: "main.js"
+    },
     output: {
-        file: "dist/dsp.js",
-        format: "esm",
+        dir: "dist",
+        format: "es",
         sourcemap: true
     },
-    external: ["antlr4"],
     plugins: [
         terser(),
     ]

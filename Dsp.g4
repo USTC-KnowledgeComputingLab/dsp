@@ -1,7 +1,7 @@
 grammar Dsp;
 
 rule_pool
-    : NEWLINE* rule (NEWLINE+ rule)* NEWLINE* EOF
+    : NEWLINE* (rule (NEWLINE+ rule)*)? NEWLINE* EOF
     ;
 
 rule

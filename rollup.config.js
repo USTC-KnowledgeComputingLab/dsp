@@ -11,7 +11,6 @@ export default {
     output: {
         dir: "dist",
         format: "es",
-        sourcemap: true
     },
     plugins: [
         resolve({
@@ -21,6 +20,10 @@ export default {
         terser(),
         copy({
             patterns: ["index.d.ts"],
+        }),
+        copy({
+            patterns: ["ds.wasm"],
+            rootDir: "tsds/dist",
         }),
     ]
 };

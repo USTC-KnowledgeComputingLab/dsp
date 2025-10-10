@@ -1,0 +1,3 @@
+[submodule "ds"]
+	path = tsds
+	url = ../ds

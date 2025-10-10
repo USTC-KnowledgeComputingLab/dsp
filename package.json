@@ -3,10 +3,14 @@
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "workspaces": [
+        "tsds"
+    ],
     "scripts": {
         "ds": "antlr4 -Dlanguage=JavaScript Ds.g4 -visitor -no-listener",
         "dsp": "antlr4 -Dlanguage=JavaScript Dsp.g4 -visitor -no-listener",
-        "prepare": "run-p ds dsp",
+        "tsds": "npm run build --workspace tsds",
+        "prepare": "run-p ds dsp tsds",
         "build": "rollup --config rollup.config.js"
     },
     "dependencies": {

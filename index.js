@@ -8,6 +8,9 @@ import DspVisitor from "./DspVisitor.js";
 import DsLexer from "./DsLexer.js";
 import DsParser from "./DsParser.js";
 import DsVisitor from "./DsVisitor.js";
+import {
+    search_t
+} from "tsds";
 
 class ParseVisitor extends DspVisitor {
     visitRule_pool(ctx) {
@@ -104,4 +107,14 @@ export function unparse(input) {
     const tree = parser.rule_pool();
     const visitor = new UnparseVisitor();
     return visitor.visit(tree);
+}
+
+export class search extends search_t {
+    add(rule) {
+        return super.add(parse(rule));
+    }
+
+    execute(callback) {
+        return super.execute(candidate => callback(unparse(candidate.toString())));
+    }
 }

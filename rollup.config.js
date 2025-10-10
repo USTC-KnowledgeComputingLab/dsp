@@ -1,3 +1,5 @@
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
 import terser from "@rollup/plugin-terser";
 import { copy } from "@web/rollup-plugin-copy";
 
@@ -12,6 +14,10 @@ export default {
         sourcemap: true
     },
     plugins: [
+        resolve({
+            browser: true
+        }),
+        commonjs(),
         terser(),
         copy({
             patterns: ["index.d.ts"],

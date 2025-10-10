@@ -2,6 +2,7 @@
     "name": "dsp",
     "type": "module",
     "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "scripts": {
         "ds": "antlr4 -Dlanguage=JavaScript Ds.g4 -visitor -no-listener",
         "dsp": "antlr4 -Dlanguage=JavaScript Dsp.g4 -visitor -no-listener",
@@ -13,6 +14,7 @@
     },
     "devDependencies": {
         "@rollup/plugin-terser": "^0.4.4",
+        "@web/rollup-plugin-copy": "^0.5.1",
         "npm-run-all": "^4.1.5",
         "rollup": "^4.52.3"
     }

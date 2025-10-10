@@ -1,4 +1,5 @@
 import terser from "@rollup/plugin-terser";
+import { copy } from "@web/rollup-plugin-copy";
 
 export default {
     input: {
@@ -12,5 +13,8 @@ export default {
     },
     plugins: [
         terser(),
+        copy({
+            patterns: ["index.d.ts"],
+        }),
     ]
 };

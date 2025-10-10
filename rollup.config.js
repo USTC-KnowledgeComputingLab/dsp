@@ -6,7 +6,8 @@ import { copy } from "@web/rollup-plugin-copy";
 export default {
     input: {
         index: "index.js",
-        main: "main.js"
+        main: "main.js",
+        test: "test.js"
     },
     output: {
         dir: "dist",

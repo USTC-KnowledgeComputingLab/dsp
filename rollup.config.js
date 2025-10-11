@@ -9,8 +9,6 @@ import {
 export default {
     input: {
         index: "index.js",
-        main: "main.js",
-        test: "test.js",
         server: "server.js"
     },
     output: {

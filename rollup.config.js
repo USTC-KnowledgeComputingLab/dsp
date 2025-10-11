@@ -1,13 +1,17 @@
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import terser from "@rollup/plugin-terser";
-import { copy } from "@web/rollup-plugin-copy";
+import json from "@rollup/plugin-json";
+import {
+    copy
+} from "@web/rollup-plugin-copy";
 
 export default {
     input: {
         index: "index.js",
         main: "main.js",
-        test: "test.js"
+        test: "test.js",
+        server: "server.js"
     },
     output: {
         dir: "dist",
@@ -19,6 +23,7 @@ export default {
         }),
         commonjs(),
         terser(),
+        json(),
         copy({
             patterns: ["index.d.ts"],
         }),

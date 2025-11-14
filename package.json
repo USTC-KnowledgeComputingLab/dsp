@@ -15,7 +15,9 @@
     },
     "dependencies": {
         "antlr4": "^4.13.2",
-        "express": "^5.1.0"
+        "express": "^5.1.0",
+        "swagger-jsdoc": "^6.2.8",
+        "swagger-ui-express": "^5.0.1"
     },
     "devDependencies": {
         "@rollup/plugin-commonjs": "^29.0.0",

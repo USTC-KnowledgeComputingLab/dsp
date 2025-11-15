@@ -509,6 +509,15 @@ app.post("/sessions/:id/search",
         });
     });
 
+app.use((req, res, next) => {
+    return res.status(404).json({
+        status: "error",
+        error: "invalid endpoint",
+        path: req.path,
+        method: req.method
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Search API running at http://localhost:${PORT}`);
 }).on("error", (err) => {

@@ -39,7 +39,11 @@ app.use((error, req, res, next) => {
     return next();
 });
 
-app.get('/swagger.json', (req, res) => {
+app.get("/swagger.json", (req, res) => {
+    return res.status(200).json(swaggerSpec);
+});
+
+app.get("/openapi.json", (req, res) => {
     return res.status(200).json(swaggerSpec);
 });
 

@@ -1,5 +1,14 @@
+import {
+    fileURLToPath
+} from "node:url";
 import crypto from "node:crypto";
 import express from "express";
+import {
+    body,
+    param,
+    validationResult
+} from "express-validator";
+import cors from "cors";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import {
@@ -8,8 +17,21 @@ import {
     search
 } from "./index.js";
 
+const PORT = process.env.PORT || 3000;
+
 const app = express();
+
+app.use(cors());
+
 app.use(express.json());
+
+app.use((error, req, res, next) => {
+    if (error instanceof SyntaxError && error.status === 400 && "body" in error) return res.status(400).json({
+        status: "error",
+        error: "invalid JSON format in request body"
+    });
+    return next();
+});
 
 const swaggerOptions = {
     definition: {
@@ -20,15 +42,24 @@ const swaggerOptions = {
             description: "API for searching and managing rules in deductive systems.",
         },
         servers: [{
-            url: `https://3000.http.proxy.hzhang.xyz:44433`,
+            url: `http://localhost:${PORT}`,
             description: "The development server",
         }, ],
     },
-    apis: ["./server.js"],
+    apis: [fileURLToPath(import.meta.url)],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+const handleValidationErrors = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({
+        status: "error",
+        error: errors.array()[0].msg
+    });
+    return next();
+};
 
 const sessions = new Map();
 
@@ -55,12 +86,13 @@ const sessions = new Map();
  *                   example: "2025-11-14T16:21:53.996"
  *                   description: The current server timestamp
  */
-app.get("/health", (req, res) => {
-    res.status(200).json({
-        status: "ok",
-        timestamp: new Date().toISOString(),
+app.get("/health",
+    (req, res) => {
+        return res.status(200).json({
+            status: "ok",
+            timestamp: new Date().toISOString(),
+        });
     });
-});
 
 /**
  * @swagger
@@ -79,16 +111,21 @@ app.get("/health", (req, res) => {
  *             properties:
  *               limit:
  *                 type: integer
+ *                 minimum: 1
  *                 example: 1024
- *                 description: The limit of lines to search
+ *                 description: The maximum number of lines to search (must be positive integer)
  *     responses:
- *       201:
+ *       200:
  *         description: Session created successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                   description: Operation status
  *                 id:
  *                   type: string
  *                   example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
@@ -100,34 +137,37 @@ app.get("/health", (req, res) => {
  *            schema:
  *              type: object
  *              properties:
+ *                status:
+ *                  type: string
+ *                  example: "error"
+ *                  description: Operation status
  *                error:
  *                  type: string
- *                  example: "invalid limit"
+ *                  example: "limit must be a positive integer"
  *                  description: Error message indicating the reason for failure
  */
-app.post("/sessions", (req, res) => {
-    if (!req.body) return res.status(400).json({
-        error: "missing body"
+app.post("/sessions",
+    body("limit").isInt({
+        min: 1
+    }).withMessage("limit must be a positive integer"),
+    handleValidationErrors,
+    (req, res) => {
+        const {
+            limit
+        } = req.body;
+        const id = crypto.randomUUID();
+        const handle = new search(limit, limit);
+        const lines = new Set();
+        sessions.set(id, {
+            limit,
+            handle,
+            lines
+        });
+        return res.status(200).json({
+            status: "ok",
+            id
+        });
     });
-    const {
-        limit
-    } = req.body;
-    if (typeof limit !== "number" || !Number.isInteger(limit) || limit <= 0) return res.status(400).json({
-        error: "invalid limit"
-    });
-
-    const id = crypto.randomUUID();
-    const handle = new search(limit, limit);
-    const lines = new Set();
-    sessions.set(id, {
-        limit,
-        handle,
-        lines
-    });
-    return res.status(201).json({
-        id
-    });
-});
 
 /**
  * @swagger
@@ -137,36 +177,45 @@ app.post("/sessions", (req, res) => {
  *     tags: [Sessions]
  *     responses:
  *       200:
- *         description: List of sessions
+ *         description: List of sessions retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                     example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
- *                     description: The ID of the search session
- *                   limit:
- *                     type: integer
- *                     example: 1024
- *                     description: The limit of lines to search
- *                   size:
- *                     type: integer
- *                     example: 0
- *                     description: The number of lines in the session
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                   description: Operation status
+ *                 sessions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
+ *                         description: The ID of the search session
+ *                       limit:
+ *                         type: integer
+ *                         example: 1024
+ *                         description: The maximum length of lines to search
+ *                       size:
+ *                         type: integer
+ *                         example: 0
+ *                         description: The current number of lines in the session
  */
-app.get("/sessions", (req, res) => {
-    return res.status(200).json(
-        Array.from(sessions.entries()).map(([id, data]) => ({
-            id,
-            limit: data.limit,
-            size: data.lines.size
-        }))
-    );
-});
+app.get("/sessions",
+    (req, res) => {
+        return res.status(200).json({
+            status: "ok",
+            sessions: Array.from(sessions.entries()).map(([id, data]) => ({
+                id,
+                limit: data.limit,
+                size: data.lines.size
+            }))
+        });
+    });
 
 /**
  * @swagger
@@ -180,8 +229,9 @@ app.get("/sessions", (req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
- *         description: The ID of the search session
+ *         description: The UUID of the search session to delete
  *     responses:
  *       200:
  *         description: Session deleted successfully
@@ -190,35 +240,43 @@ app.get("/sessions", (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 status:
  *                   type: string
- *                   example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
- *                   description: The ID of the deleted search session
- *       404:
+ *                   example: "ok"
+ *                   description: Operation status
+ *       400:
  *         description: Invalid request
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                   description: Operation status
  *                 error:
  *                   type: string
  *                   example: "session not found"
  *                   description: Error message indicating the reason for failure
  */
-app.delete("/sessions/:id", (req, res) => {
-    const {
-        id
-    } = req.params;
-    if (!sessions.has(id)) return res.status(404).json({
-        error: "session not found"
-    });
+app.delete("/sessions/:id",
+    param("id").isUUID().withMessage("id must be a valid UUID"),
+    handleValidationErrors,
+    (req, res) => {
+        const {
+            id
+        } = req.params;
+        if (!sessions.has(id)) return res.status(400).json({
+            status: "error",
+            error: "session not found"
+        });
 
-    sessions.delete(id);
-    return res.status(200).json({
-        id
+        sessions.delete(id);
+        return res.status(200).json({
+            status: "ok"
+        });
     });
-});
 
 /**
  * @swagger
@@ -232,8 +290,9 @@ app.delete("/sessions/:id", (req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
- *         description: The ID of the search session
+ *         description: The UUID of the search session
  *     requestBody:
  *       required: true
  *       content:
@@ -243,7 +302,7 @@ app.delete("/sessions/:id", (req, res) => {
  *             items:
  *               type: string
  *             example: ["a -> b", "a"]
- *             description: An array of lines to add to the search session
+ *             description: An array of lines to add
  *     responses:
  *       200:
  *         description: Lines added successfully
@@ -252,10 +311,10 @@ app.delete("/sessions/:id", (req, res) => {
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 status:
  *                   type: string
- *                   example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
- *                   description: The ID of the search session
+ *                   example: "ok"
+ *                   description: Operation status
  *       400:
  *         description: Invalid request
  *         content:
@@ -263,60 +322,49 @@ app.delete("/sessions/:id", (req, res) => {
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                   description: Operation status
  *                 error:
  *                   type: string
- *                   example: "missing body"
- *                   description: Error message indicating the reason for failure
- *       404:
- *         description: Invalid request
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "search not found"
+ *                   example: "session not found"
  *                   description: Error message indicating the reason for failure
  */
-app.post("/sessions/:id/lines", (req, res) => {
-    const {
-        id
-    } = req.params;
-    const found = sessions.get(id);
-    if (!found) return res.status(404).json({
-        error: "search not found"
-    });
-    const {
-        handle,
-        lines
-    } = found;
+app.post("/sessions/:id/lines",
+    param("id").isUUID().withMessage("id must be a valid UUID"),
+    body().isArray().withMessage("request body must be an array"),
+    body("*").isString().withMessage("each item of body must be a string"),
+    handleValidationErrors,
+    (req, res) => {
+        const {
+            id
+        } = req.params;
+        const found = sessions.get(id);
+        if (!found) return res.status(400).json({
+            status: "error",
+            error: "session not found"
+        });
 
-    if (!req.body) return res.status(400).json({
-        error: "missing body"
-    });
-    if (!Array.isArray(req.body)) return res.status(400).json({
-        error: "lines must be an array"
-    });
-    const inputLines = req.body;
-    if (!inputLines.every(l => typeof l === "string")) return res.status(400).json({
-        error: "invalid line(s)"
-    });
+        const {
+            handle,
+            lines
+        } = found;
 
-    for (const line of inputLines)
-        if (handle.add(line)) {
-            lines.add(unparse(parse(line)));
-        }
-    return res.status(200).json({
-        id
+        for (const line of req.body)
+            if (handle.add(line))
+                lines.add(unparse(parse(line)));
+
+        return res.status(200).json({
+            status: "ok"
+        });
     });
-});
 
 /**
  * @swagger
  * /sessions/{id}/lines:
  *   get:
- *     summary: Get lines from a search session
+ *     summary: Get all lines from a search session
  *     tags: [Data]
  *     parameters:
  *       - in: path
@@ -324,51 +372,70 @@ app.post("/sessions/:id/lines", (req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
- *         description: The ID of the search session
+ *         description: The UUID of the search session
  *     responses:
  *       200:
- *         description: Lines added successfully
+ *         description: Lines retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: string
- *               example: ["a -> b", "a"]
- *               description: An array of lines in the search session
- *       404:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                   description: Operation status
+ *                 lines:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["a -> b", "a"]
+ *                   description: An array of lines in the search session
+ *       400:
  *         description: Invalid request
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                   description: Operation status
  *                 error:
  *                   type: string
- *                   example: "search not found"
+ *                   example: "session not found"
  *                   description: Error message indicating the reason for failure
  */
-app.get("/sessions/:id/lines", (req, res) => {
-    const {
-        id
-    } = req.params;
-    const found = sessions.get(id);
-    if (!found) return res.status(404).json({
-        error: "search not found"
-    });
-    const {
-        lines
-    } = found;
+app.get("/sessions/:id/lines",
+    param("id").isUUID().withMessage("id must be a valid UUID"),
+    handleValidationErrors,
+    (req, res) => {
+        const {
+            id
+        } = req.params;
+        const found = sessions.get(id);
+        if (!found) return res.status(400).json({
+            status: "error",
+            error: "session not found"
+        });
 
-    return res.status(200).json(Array.from(lines));
-});
+        const {
+            lines
+        } = found;
+        return res.status(200).json({
+            status: "ok",
+            lines: Array.from(lines)
+        });
+    });
 
 /**
  * @swagger
  * /sessions/{id}/search:
  *   post:
- *     summary: Execute search in a session
+ *     summary: Execute search in a session to find new lines
  *     tags: [Search]
  *     parameters:
  *       - in: path
@@ -376,53 +443,72 @@ app.get("/sessions/:id/lines", (req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         example: "842e8504-1300-4b87-89d3-ad9548ce8de1"
- *         description: The ID of the search session
+ *         description: The UUID of the search session
  *     responses:
  *       200:
  *         description: Search executed successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: string
- *               example: ["b"]
- *               description: An array of newly found lines from the search
- *       404:
- *         description: Invalid request
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                   description: Operation status
+ *                 lines:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["b"]
+ *                   description: An array of newly found lines from the search
+ *       400:
+ *         description: Session not found
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                   description: Operation status
  *                 error:
  *                   type: string
- *                   example: "search not found"
+ *                   example: "session not found"
  *                   description: Error message indicating the reason for failure
  */
-app.post("/sessions/:id/search", (req, res) => {
-    const {
-        id
-    } = req.params;
-    const found = sessions.get(id);
-    if (!found) return res.status(404).json({
-        error: "search not found"
-    });
-    const {
-        handle,
-        lines
-    } = found;
+app.post("/sessions/:id/search",
+    param("id").isUUID().withMessage("id must be a valid UUID"),
+    handleValidationErrors,
+    (req, res) => {
+        const {
+            id
+        } = req.params;
+        const found = sessions.get(id);
+        if (!found) return res.status(400).json({
+            status: "error",
+            error: "session not found"
+        });
 
-    const newLines = [];
-    handle.execute(c => {
-        newLines.push(c);
-        lines.add(c);
-    });
-    return res.status(200).json(newLines);
-});
+        const {
+            handle,
+            lines
+        } = found;
+        const newLines = [];
+        handle.execute(c => {
+            newLines.push(c);
+            lines.add(c);
+        });
 
-const PORT = process.env.PORT || 3000;
+        return res.status(200).json({
+            status: "ok",
+            lines: newLines
+        });
+    });
+
 app.listen(PORT, () => {
     console.log(`Search API running at http://localhost:${PORT}`);
 }).on("error", (err) => {

@@ -15,7 +15,9 @@
     },
     "dependencies": {
         "antlr4": "^4.13.2",
+        "cors": "^2.8.5",
         "express": "^5.1.0",
+        "express-validator": "^7.3.0",
         "swagger-jsdoc": "^6.2.8",
         "swagger-ui-express": "^5.0.1"
     },

@@ -1,0 +1,440 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Deductive System API",
+        "version": "1.0.0",
+        "description": "API for searching and managing rules in deductive systems."
+    },
+    "servers": [{
+        "url": "http://localhost:3000",
+        "description": "The development server"
+    }],
+    "paths": {
+        "/health": {
+            "get": {
+                "summary": "Check the health status of the service",
+                "tags": ["System"],
+                "responses": {
+                    "200": {
+                        "description": "Service is healthy",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok",
+                                            "description": "The health status of the service"
+                                        },
+                                        "timestamp": {
+                                            "type": "string",
+                                            "example": "2025-11-14T16:21:53.996",
+                                            "description": "The current server timestamp"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions": {
+            "post": {
+                "summary": "Create a new search session",
+                "tags": ["Sessions"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["limit"],
+                                "properties": {
+                                    "limit": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "example": 1024,
+                                        "description": "The maximum number of lines to search (must be positive integer)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Session created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok",
+                                            "description": "Operation status"
+                                        },
+                                        "id": {
+                                            "type": "string",
+                                            "example": "842e8504-1300-4b87-89d3-ad9548ce8de1",
+                                            "description": "The ID of the created search session"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error",
+                                            "description": "Operation status"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "limit must be a positive integer",
+                                            "description": "Error message indicating the reason for failure"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get list of all search sessions",
+                "tags": ["Sessions"],
+                "responses": {
+                    "200": {
+                        "description": "List of sessions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok",
+                                            "description": "Operation status"
+                                        },
+                                        "sessions": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "example": "842e8504-1300-4b87-89d3-ad9548ce8de1",
+                                                        "description": "The ID of the search session"
+                                                    },
+                                                    "limit": {
+                                                        "type": "integer",
+                                                        "example": 1024,
+                                                        "description": "The maximum length of lines to search"
+                                                    },
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "example": 0,
+                                                        "description": "The current number of lines in the session"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/{id}": {
+            "delete": {
+                "summary": "Delete a search session",
+                "tags": ["Sessions"],
+                "parameters": [{
+                    "in": "path",
+                    "name": "id",
+                    "required": true,
+                    "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "example": "842e8504-1300-4b87-89d3-ad9548ce8de1",
+                    "description": "The UUID of the search session to delete"
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Session deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok",
+                                            "description": "Operation status"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error",
+                                            "description": "Operation status"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "session not found",
+                                            "description": "Error message indicating the reason for failure"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/{id}/lines": {
+            "post": {
+                "summary": "Add lines to a search session",
+                "tags": ["Data"],
+                "parameters": [{
+                    "in": "path",
+                    "name": "id",
+                    "required": true,
+                    "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "example": "842e8504-1300-4b87-89d3-ad9548ce8de1",
+                    "description": "The UUID of the search session"
+                }],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "example": ["a -> b", "a"],
+                                "description": "An array of lines to add"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Lines added successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok",
+                                            "description": "Operation status"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error",
+                                            "description": "Operation status"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "session not found",
+                                            "description": "Error message indicating the reason for failure"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "summary": "Get all lines from a search session",
+                "tags": ["Data"],
+                "parameters": [{
+                    "in": "path",
+                    "name": "id",
+                    "required": true,
+                    "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "example": "842e8504-1300-4b87-89d3-ad9548ce8de1",
+                    "description": "The UUID of the search session"
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Lines retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok",
+                                            "description": "Operation status"
+                                        },
+                                        "lines": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "example": ["a -> b", "a"],
+                                            "description": "An array of lines in the search session"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error",
+                                            "description": "Operation status"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "session not found",
+                                            "description": "Error message indicating the reason for failure"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/{id}/search": {
+            "post": {
+                "summary": "Execute search in a session to find new lines",
+                "tags": ["Search"],
+                "parameters": [{
+                    "in": "path",
+                    "name": "id",
+                    "required": true,
+                    "schema": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "example": "842e8504-1300-4b87-89d3-ad9548ce8de1",
+                    "description": "The UUID of the search session"
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Search executed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok",
+                                            "description": "Operation status"
+                                        },
+                                        "lines": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "example": ["b"],
+                                            "description": "An array of newly found lines from the search"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error",
+                                            "description": "Operation status"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "session not found",
+                                            "description": "Error message indicating the reason for failure"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {},
+    "tags": [{
+            "name": "System",
+            "description": "The system health check interface"
+        },
+        {
+            "name": "Sessions",
+            "description": "The search session management interface"
+        },
+        {
+            "name": "Data",
+            "description": "The search session data management interface"
+        },
+        {
+            "name": "Search",
+            "description": "The search execution interface"
+        }
+    ]
+}

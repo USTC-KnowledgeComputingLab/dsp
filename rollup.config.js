@@ -19,7 +19,7 @@ export default {
     },
     plugins: [
         nodeResolve({
-            exportConditions: ["node"],
+            browser: true
         }),
         commonjs(),
         json(),

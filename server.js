@@ -12,8 +12,6 @@ import {
 } from "express-validator";
 import cors from "cors";
 import {
-    parse,
-    unparse,
     search
 } from "./index.js";
 import swaggerSpec from "./swagger.json";
@@ -137,9 +135,11 @@ app.post("/sessions/:id/lines",
             lines
         } = found;
 
-        for (const line of req.body)
-            if (handle.add(line))
-                lines.add(unparse(parse(line)));
+        for (const line of req.body) {
+            const formatedLine = handle.add(line);
+            if (formatedLine)
+                lines.add(formatedLine);
+        }
 
         return res.status(200).json({
             status: "ok"

@@ -111,7 +111,11 @@ export function unparse(input) {
 
 export class search extends search_t {
     add(rule) {
-        return super.add(parse(rule));
+        const parsedRule = parse(rule);
+        if (super.add(parsedRule))
+            return unparse(parsedRule);
+        else
+            return null;
     }
 
     execute(callback) {

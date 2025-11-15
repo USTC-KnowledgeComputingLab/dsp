@@ -5,6 +5,6 @@ export declare class search {
     set_limit_size(limit_size: number): void;
     set_buffer_size(buffer_size: number): void;
     reset(): void;
-    add(text: string): boolean;
+    add(text: string): string | null;
     execute(callback: (candidate: string) => boolean): number;
 }

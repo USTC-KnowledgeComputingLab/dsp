@@ -16,7 +16,13 @@ import {
 } from "./index.js";
 import swaggerSpec from "./swagger.json";
 
+const HOST = process.env.HOST || "127.0.0.1";
 const PORT = process.env.PORT || 3000;
+const URL = process.env.URL || `http://${HOST}:${PORT}`;
+swaggerSpec.servers = [{
+    url: URL,
+    description: "The development server"
+}];
 
 const app = express();
 
@@ -197,8 +203,8 @@ app.use((req, res, next) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Search API running at http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+    console.log(`Search API running at http://${HOST}:${PORT}`);
 }).on("error", (err) => {
     console.error(`Failed to start server: ${err.message}`);
     process.exit(1);

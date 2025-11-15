@@ -1,4 +1,3 @@
-import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import terser from "@rollup/plugin-terser";
 import json from "@rollup/plugin-json";
@@ -16,11 +15,12 @@ export default {
         format: "es",
     },
     plugins: [
-        resolve({
-            browser: true
-        }),
         commonjs(),
-        terser(),
+        terser({
+            format: {
+                comments: (node, comment) => comment.value.includes('@swagger')
+            }
+        }),
         json(),
         copy({
             patterns: ["index.d.ts"],

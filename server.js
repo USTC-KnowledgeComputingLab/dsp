@@ -1,6 +1,8 @@
 import {
-    fileURLToPath
-} from "node:url";
+    access,
+    readFile,
+    writeFile
+} from "node:fs/promises";
 import crypto from "node:crypto";
 import express from "express";
 import {
@@ -16,6 +18,7 @@ import {
 } from "./index.js";
 import swaggerSpec from "./swagger.json";
 
+const SAVE_INTERVAL = process.env.SAVE_INTERVAL ? parseInt(process.env.SAVE_INTERVAL) : 1;
 const HOST = process.env.HOST || "127.0.0.1";
 const PORT = process.env.PORT || 3000;
 const URL = process.env.URL || `http://${HOST}:${PORT}`;
@@ -203,7 +206,39 @@ app.use((req, res, next) => {
     });
 });
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, async () => {
+    try {
+        await access("data.json");
+        const data = await readFile("data.json", "utf-8");
+        for (const {
+                id,
+                limit,
+                lines
+            }
+            of JSON.parse(data)) {
+            const handle = new search(limit, limit);
+            const lineSet = new Set();
+            for (const line of lines) {
+                handle.add(line);
+                lineSet.add(line);
+            }
+            sessions.set(id, {
+                limit,
+                handle,
+                lines: lineSet
+            });
+        }
+    } catch {}
+
+    setInterval(async () => {
+        const data = Array.from(sessions.entries()).map(([id, data]) => ({
+            id,
+            limit: data.limit,
+            lines: Array.from(data.lines)
+        }));
+        await writeFile("data.json", JSON.stringify(data), "utf-8");
+    }, SAVE_INTERVAL * 1000);
+
     console.log(`Search API running at http://${HOST}:${PORT}`);
 }).on("error", (err) => {
     console.error(`Failed to start server: ${err.message}`);
